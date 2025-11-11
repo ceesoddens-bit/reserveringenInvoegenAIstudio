@@ -25,11 +25,21 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #6b7280; /* bg-gray-500 */
       }
-      /* Style for date/time picker icon */
-      input[type="date"]::-webkit-calendar-picker-indicator,
-      input[type="time"]::-webkit-calendar-picker-indicator {
+      /* Style for date picker icon */
+      input[type="date"]::-webkit-calendar-picker-indicator {
         filter: invert(1);
         cursor: pointer;
+      }
+      /* Custom select styling for dropdown arrow and options */
+      select.custom-select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
+        background-size: 1.5em 1.5em;
+      }
+      select.custom-select option {
+        background: #1f2937; /* bg-gray-800 */
+        color: #d1d5db; /* text-gray-300 */
       }
     </style>
   <script type="importmap">
@@ -129,6 +139,10 @@
             verzonden_op: getFormattedTimestamp(),
           };
 
+          // Rename 'tijd' to 'Tijd' to match the expected field name in the webhook.
+          payload.Tijd = payload.tijd;
+          delete payload.tijd;
+
           try {
             const response = await fetch(WEBHOOK_URL, {
               method: 'POST',
@@ -167,6 +181,14 @@
         
         const minDate = new Date().toISOString().split('T')[0];
 
+        const timeSlots = [];
+        for (let h = 17; h <= 22; h++) {
+            timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
+            if (h < 22) {
+                timeSlots.push(`${h.toString().padStart(2, '0')}:30`);
+            }
+        }
+
         return React.createElement('div', { className: "min-h-screen flex items-center justify-center p-4 bg-gray-900" },
           React.createElement('div', { className: "w-full max-w-lg mx-auto bg-gray-800 shadow-2xl rounded-2xl p-6 sm:p-8" },
             React.createElement('div', { className: "text-center mb-8" },
@@ -184,42 +206,69 @@
               React.createElement('span', { className: "block sm:inline" }, statusMessage)
             ),
 
-            React.createElement('form', { onSubmit: handleSubmit, className: "space-y-6" },
-              React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-6" },
-                React.createElement('div', null,
-                  React.createElement('label', { htmlFor: "datum", className: "block text-sm font-medium text-gray-300 mb-1" }, "Datum"),
-                  React.createElement('input', { type: "date", id: "datum", name: "datum", value: formData.datum, onChange: handleChange, required: true, min: minDate, className: "w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" })
+            React.createElement('form', { onSubmit: handleSubmit, className: "space-y-8" },
+              React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-8" },
+                React.createElement('div', { className: "relative" },
+                  React.createElement('input', { type: "date", id: "datum", name: "datum", value: formData.datum, onChange: handleChange, required: true, min: minDate, className: "peer block w-full bg-transparent border-0 border-b-2 border-gray-500 appearance-none focus:outline-none focus:ring-0 focus:border-blue-500 text-gray-200 pt-4 pb-1", placeholder: " " }),
+                  React.createElement('label', { htmlFor: "datum", className: "absolute top-4 left-0 text-gray-400 duration-300 transform -translate-y-4 scale-75 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4" }, "Datum")
                 ),
-                React.createElement('div', null,
-                  React.createElement('label', { htmlFor: "tijd", className: "block text-sm font-medium text-gray-300 mb-1" }, "Tijd"),
-                  React.createElement('input', { type: "time", id: "tijd", name: "tijd", value: formData.tijd, onChange: handleChange, required: true, className: "w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" })
+                React.createElement('div', { className: "relative" },
+                  React.createElement('select', {
+                    id: "tijd",
+                    name: "tijd",
+                    value: formData.tijd,
+                    onChange: handleChange,
+                    required: true,
+                    className: "peer custom-select block w-full bg-transparent border-0 border-b-2 border-gray-500 appearance-none focus:outline-none focus:ring-0 focus:border-blue-500 text-gray-200 pt-4 pb-1"
+                  },
+                    React.createElement('option', { value: "", disabled: true }),
+                    ...timeSlots.map(time => React.createElement('option', { key: time, value: time }, time))
+                  ),
+                  React.createElement('label', {
+                    htmlFor: "tijd",
+                    className: `absolute top-4 left-0 text-gray-400 duration-300 transform origin-[0] peer-focus:scale-75 peer-focus:-translate-y-4 ${formData.tijd ? '-translate-y-4 scale-75' : 'scale-100 translate-y-0'}`
+                  }, "Tijd")
                 )
               ),
 
-              React.createElement('div', null,
-                React.createElement('label', { htmlFor: "naam", className: "block text-sm font-medium text-gray-300 mb-1" }, "Naam"),
-                React.createElement('input', { type: "text", id: "naam", name: "naam", value: formData.naam, onChange: handleChange, required: true, placeholder: "Uw volledige naam", className: "w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" })
+              React.createElement('div', { className: "relative" },
+                React.createElement('input', { type: "text", id: "naam", name: "naam", value: formData.naam, onChange: handleChange, required: true, placeholder: " ", className: "peer block w-full bg-transparent border-0 border-b-2 border-gray-500 appearance-none focus:outline-none focus:ring-0 focus:border-blue-500 text-white pt-4 pb-1 px-1" }),
+                React.createElement('label', { htmlFor: "naam", className: "absolute top-4 left-1 text-gray-400 duration-300 transform -translate-y-4 scale-75 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4" }, "Naam")
               ),
 
-              React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-6" },
-                React.createElement('div', null,
-                  React.createElement('label', { htmlFor: "telefoon", className: "block text-sm font-medium text-gray-300 mb-1" }, "Telefoonnummer"),
-                  React.createElement('input', { type: "tel", id: "telefoon", name: "telefoon", value: formData.telefoon, onChange: handleChange, required: true, placeholder: "06 12345678", className: "w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" })
+              React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 gap-8" },
+                React.createElement('div', { className: "relative" },
+                  React.createElement('input', { type: "tel", id: "telefoon", name: "telefoon", value: formData.telefoon, onChange: handleChange, required: true, placeholder: " ", className: "peer block w-full bg-transparent border-0 border-b-2 border-gray-500 appearance-none focus:outline-none focus:ring-0 focus:border-blue-500 text-white pt-4 pb-1 px-1" }),
+                  React.createElement('label', { htmlFor: "telefoon", className: "absolute top-4 left-1 text-gray-400 duration-300 transform -translate-y-4 scale-75 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4" }, "Telefoonnummer")
                 ),
-                React.createElement('div', null,
-                  React.createElement('label', { htmlFor: "email", className: "block text-sm font-medium text-gray-300 mb-1" }, "E-mailadres"),
-                  React.createElement('input', { type: "email", id: "email", name: "email", value: formData.email, onChange: handleChange, required: true, placeholder: "u@voorbeeld.nl", className: "w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" })
+                React.createElement('div', { className: "relative" },
+                  React.createElement('input', { type: "email", id: "email", name: "email", value: formData.email, onChange: handleChange, required: true, placeholder: " ", className: "peer block w-full bg-transparent border-0 border-b-2 border-gray-500 appearance-none focus:outline-none focus:ring-0 focus:border-blue-500 text-white pt-4 pb-1 px-1" }),
+                  React.createElement('label', { htmlFor: "email", className: "absolute top-4 left-1 text-gray-400 duration-300 transform -translate-y-4 scale-75 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4" }, "E-mailadres")
                 )
               ),
               
-              React.createElement('div', null,
-                React.createElement('label', { htmlFor: "gasten", className: "block text-sm font-medium text-gray-300 mb-1" }, "Aantal gasten"),
-                React.createElement('input', { type: "number", id: "gasten", name: "gasten", value: formData.gasten, onChange: handleChange, required: true, min: "1", className: "w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" })
+              React.createElement('div', { className: "relative" },
+                React.createElement('select', {
+                  id: "gasten",
+                  name: "gasten",
+                  value: formData.gasten,
+                  onChange: handleChange,
+                  required: true,
+                  className: "peer custom-select block w-full bg-transparent border-0 border-b-2 border-gray-500 appearance-none focus:outline-none focus:ring-0 focus:border-blue-500 text-gray-200 pt-4 pb-1"
+                },
+                  ...Array.from({ length: 12 }, (_, i) => i + 1).map(num =>
+                    React.createElement('option', { key: num, value: num }, `${num} ${num > 1 ? 'gasten' : 'gast'}`)
+                  )
+                ),
+                React.createElement('label', {
+                  htmlFor: "gasten",
+                  className: `absolute top-4 left-0 text-gray-400 duration-300 transform origin-[0] peer-focus:scale-75 peer-focus:-translate-y-4 ${formData.gasten ? '-translate-y-4 scale-75' : 'scale-100 translate-y-0'}`
+                }, "Aantal gasten")
               ),
 
-              React.createElement('div', null,
-                React.createElement('label', { htmlFor: "aantekeningen", className: "block text-sm font-medium text-gray-300 mb-1" }, "Aantekeningen"),
-                React.createElement('textarea', { id: "aantekeningen", name: "aantekeningen", value: formData.aantekeningen, onChange: handleChange, rows: 3, placeholder: "Bijv. allergieën, kinderstoel, etc.", className: "w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" })
+              React.createElement('div', { className: "relative" },
+                React.createElement('textarea', { id: "aantekeningen", name: "aantekeningen", value: formData.aantekeningen, onChange: handleChange, rows: 3, placeholder: " ", className: "peer block w-full bg-transparent border-0 border-b-2 border-gray-500 appearance-none focus:outline-none focus:ring-0 focus:border-blue-500 text-white pt-4 pb-1 px-1" }),
+                React.createElement('label', { htmlFor: "aantekeningen", className: "absolute top-4 left-1 text-gray-400 duration-300 transform -translate-y-4 scale-75 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-4" }, "Aantekeningen (optioneel)")
               ),
               
               React.createElement('div', { className: "flex items-center" },
@@ -227,7 +276,7 @@
                 React.createElement('label', { htmlFor: "bevestigingsmail", className: "ml-3 block text-sm text-gray-300" }, "Stuur mij een bevestigingsmail")
               ),
 
-              React.createElement('div', null,
+              React.createElement('div', { className: "pt-2" },
                 React.createElement('button', { type: "submit", disabled: isLoading, className: "w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors" },
                   isLoading ? React.createElement(React.Fragment, null,
                     React.createElement(SpinnerIcon, { className: "animate-spin -ml-1 mr-3 h-5 w-5 text-white" }),
